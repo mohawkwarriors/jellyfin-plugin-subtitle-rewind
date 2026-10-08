@@ -1,0 +1,101 @@
+name: Build and Release Jellyfin Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 8.0 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Determine Version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Sync Web Distribution to Server Plugin Assets
+        run: |
+          cp dist/jellyfin-subtitle-rewind.js server-plugin/Jellyfin.Plugin.SubtitleRewind/Web/subtitle-rewind.js
+
+      - name: Build & Publish C# Plugin
+        run: |
+          dotnet publish -c Release server-plugin/Jellyfin.Plugin.SubtitleRewind/Jellyfin.Plugin.SubtitleRewind.csproj -o ./publish
+
+      - name: Package Plugin Archive
+        run: |
+          cd publish
+          zip -r ../Jellyfin.Plugin.SubtitleRewind.zip ./*
+          cd ..
+
+      - name: Generate Repository Manifest
+        run: |
+          python3 scripts/build-manifest.py \
+            Jellyfin.Plugin.SubtitleRewind.zip \
+            ${{ steps.get_version.outputs.VERSION }} \
+            ${{ github.repository_owner }} \
+            ${{ github.event.repository.name }} \
+            manifest.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || format('v{0}', steps.get_version.outputs.VERSION) }}
+          name: Subtitle Rewind v${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            Jellyfin.Plugin.SubtitleRewind.zip
+            manifest.json
+            dist/jellyfin-subtitle-rewind.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare GitHub Pages Artifact
+        run: |
+          mkdir -p ./pages
+          cp manifest.json ./pages/
+          cp dist/jellyfin-subtitle-rewind.js ./pages/
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./pages
+
+  deploy-pages:
+    needs: build-and-package
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
