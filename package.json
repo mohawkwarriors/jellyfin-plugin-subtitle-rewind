@@ -1,0 +1,9 @@
+{
+  "name": "jellyfin-subtitle-rewind",
+  "version": "1.0.0",
+  "description": "Apple TV-inspired automatic subtitle rewind plugin for Jellyfin Web",
+  "main": "dist/jellyfin-subtitle-rewind.js",
+  "keywords": ["jellyfin", "jellyfin-plugin", "subtitles"],
+  "author": "Mohammed Saahir Essa",
+  "license": "MIT"
+}

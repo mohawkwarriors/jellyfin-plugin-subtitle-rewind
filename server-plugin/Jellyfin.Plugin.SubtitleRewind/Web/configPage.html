@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Subtitle Rewind Configuration</title>
+</head>
+<body>
+    <div id="SubtitleRewindConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <h1>Subtitle Rewind Configuration</h1>
+                <p>Configure automatic subtitle activation when skipping backward during playback.</p>
+
+                <form id="SubtitleRewindConfigForm">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkEnabled" name="chkEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Enable Subtitle Rewind</span>
+                        </label>
+                        <div class="fieldDescription">Turn on subtitles automatically when discrete skip-back is detected.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtRewindCap">Rewind Trigger Cap (seconds)</label>
+                        <input id="txtRewindCap" name="txtRewindCap" type="number" min="10" max="300" step="5" is="emby-input" class="emby-input" />
+                        <div class="fieldDescription">Maximum rewind duration (default: 90s). Skips exceeding this cap are treated as scene navigation and ignored.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtDisplayDuration">Display Duration (seconds)</label>
+                        <input id="txtDisplayDuration" name="txtDisplayDuration" type="number" min="10" max="600" step="5" is="emby-input" class="emby-input" />
+                        <div class="fieldDescription">How long subtitles remain visible before automatically reverting to Off (default: 60s).</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="txtPreferredLanguage">Preferred Subtitle Language Override</label>
+                        <input id="txtPreferredLanguage" name="txtPreferredLanguage" type="text" is="emby-input" class="emby-input" placeholder="e.g. eng, spa, fra" />
+                        <div class="fieldDescription">3-letter language code. Leave empty to automatically follow user profile and active audio track.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkPrioritizeText" name="chkPrioritizeText" type="checkbox" is="emby-checkbox" />
+                            <span>Format-Safe: Prioritize Text Subtitles (.srt, .vtt)</span>
+                        </label>
+                        <div class="fieldDescription">Heavily prioritizes text formats over bitmap subtitles (PGS/VobSub) to prevent video transcoding buffer stalls.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkAllowSDH" name="chkAllowSDH" type="checkbox" is="emby-checkbox" />
+                            <span>Allow SDH (Hearing Impaired) as Fallback</span>
+                        </label>
+                        <div class="fieldDescription">Full dialogue tracks are always prioritized first. Check to allow SDH when full dialogue tracks are unavailable.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="chkDebug" name="chkDebug" type="checkbox" is="emby-checkbox" />
+                            <span>Enable Client Console Debug Logging</span>
+                        </label>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            const SubtitleRewindConfig = { pluginId: 'a5c7f763-71f0-4598-bbcf-f179b068e8d2' };
+
+            document.getElementById('SubtitleRewindConfigPage').addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(SubtitleRewindConfig.pluginId).then(function (config) {
+                    document.getElementById('chkEnabled').checked = config.Enabled !== false;
+                    document.getElementById('txtRewindCap').value = config.RewindCapSeconds || 90;
+                    document.getElementById('txtDisplayDuration').value = config.DisplayDurationSeconds || 60;
+                    document.getElementById('txtPreferredLanguage').value = config.PreferredLanguage || '';
+                    document.getElementById('chkPrioritizeText').checked = config.PrioritizeTextOverBitmap !== false;
+                    document.getElementById('chkAllowSDH').checked = config.AllowSDH !== false;
+                    document.getElementById('chkDebug').checked = config.DebugLogging === true;
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+            document.getElementById('SubtitleRewindConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(SubtitleRewindConfig.pluginId).then(function (config) {
+                    config.Enabled = document.getElementById('chkEnabled').checked;
+                    config.RewindCapSeconds = parseInt(document.getElementById('txtRewindCap').value, 10);
+                    config.DisplayDurationSeconds = parseInt(document.getElementById('txtDisplayDuration').value, 10);
+                    config.PreferredLanguage = document.getElementById('txtPreferredLanguage').value.trim();
+                    config.PrioritizeTextOverBitmap = document.getElementById('chkPrioritizeText').checked;
+                    config.AllowSDH = document.getElementById('chkAllowSDH').checked;
+                    config.DebugLogging = document.getElementById('chkDebug').checked;
+
+                    ApiClient.updatePluginConfiguration(SubtitleRewindConfig.pluginId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+                return false;
+            });
+        </script>
+    </div>
+</body>
+</html>
