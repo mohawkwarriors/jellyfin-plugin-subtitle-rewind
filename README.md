@@ -1,4 +1,4 @@
-# Jellyfin Subtitle Rewind (Auto-Sub on Rewind)
+# Jellyfin Subtitle Rewind (Auto-Sub on Rewind) 
 
 > An Apple TV-inspired Jellyfin Web plugin that automatically turns on subtitles for 60 seconds when skipping backward up to 90 seconds to catch missed dialogue, reverting seamlessly with zero UI disruption.
 
